@@ -1,236 +1,180 @@
-# Simple Shell project 0x16.c - Sodash -
+# Projet Simple Shell 0x16.c - Sodash -
 
-This is a simple UNIX command interpreter based on bash and Sh.
+Il s'agit d'un simple interpréteur de commandes UNIX basé sur bash et Sh.
 
-## Overview
+## Aperçu
 
-**Sodashy** is a sh-compatible command language interpreter that executes commands read from the standard input or from a file.
+**Sodashy** est un interpréteur de langage de commande compatible sh qui exécute des commandes lues à partir de l'entrée standard ou d'un fichier.
 
 ### Invocation
 
-Usage: **Sodash**
-Sodash is started with the standard input connected to the terminal. To start, compile all .c located in this repository by using this command:
+Utilisation : **Sodash**
+Sodash est démarré avec l'entrée standard connectée au terminal. Pour commencer, compilez tous les .c situés dans ce dépôt en utilisant cette commande :
 
-``` C
+```C
 gcc -Wall -Werror -Wextra -pedantic *.c -o sodash
-./sodash
+./sodas
 ```
 
-**Sodash** is allowed to be invoked interactively and non-interactively. If **sodash** is invoked with standard input not connected to a terminal, it reads and executes received commands in order.
+**Sodash** peut être appelé de manière interactive et non interactive. Si **sodash** est invoqué avec une entrée standard non connectée à un terminal, il lit et exécute les commandes reçues dans l'ordre.
 
-Example:
+Exemple:
 
-``` C
-$ echo "echo 'main'" | ./sodash
-'main'
+```C
+$ echo "echo 'principal'" | ./sodas
+'principal'
 $
 ```
 
-When **sodash** is invoked with standard input connected to a terminal (determined by isatty(3), the interactive mode is opened. **sodash** Will be using the following prompt `^-^`.
+Lorsque **sodash** est invoqué avec une entrée standard connectée à un terminal (déterminé par isatty(3), le mode interactif est ouvert. **sodash** utilisera l'invite suivante `^-^`.
 
-Example:
+Exemple:
 
 ```C
-$./sodash
+$./soda
 ^-^
 ```
 
-If a command line argument is invoked, **sodash** will take that first argument as a file from which to read commands.
+Si un argument de ligne de commande est invoqué, **sodash** prendra ce premier argument comme un fichier à partir duquel lire les commandes.
 
-Example:
+Exemple:
 
 ```C
-$ cat text
-echo 'main'
-$ ./sodash text
-'main'
+$ chat texte
+echo 'principal'
+$ ./texte soda
+'principal'
 $
 ```
 
-### Environment
+### Environnement
 
-Upon invocation, **sodash** receives and copies the environment of the parent process in which it was executed. This environment is an array of *name-value* strings describing variables in the format *NAME=VALUE*. A few key environmental variables are:
+Lors de l'invocation, **sodash** reçoit et copie l'environnement du processus parent dans lequel il a été exécuté. Cet environnement est un tableau de chaînes *nom-valeur* décrivant des variables au format *NOM=VALEUR*. Voici quelques variables environnementales clés :
 
-#### HOME
+#### MAISON
 
-The home directory of the current user and the default directory argument for the **cd** builtin command.
+Le répertoire personnel de l'utilisateur actuel et l'argument de répertoire par défaut pour la commande intégrée **cd**.
 
-```CC
-$ echo "echo $HOME" | ./sodash
-/home/vagrant
+``` CC
+$ echo "echo $HOME" | ./sodas
+/home/vagabond
 ```
 
 #### PWD
 
-The current working directory as set by the **cd** command.
+Le répertoire de travail actuel tel que défini par la commande **cd**.
 
 ```C
-$ echo "echo $PWD" | ./sodash
+$ echo "echo $PWD" | ./sodas
 /home/vagrant/main/simple_shell
 ```
 
 #### OLDPWD
 
-The previous working directory as set by the **cd** command.
+Le répertoire de travail précédent tel que défini par la commande **cd**.
 
 ```C
-$ echo "echo $OLDPWD" | ./sodash
+$ echo "echo $OLDPWD" | ./sodas
 /home/vagrant/main/bog-062022-test_suite
 ```
 
-#### PATH
+#### CHEMIN
 
-A colon-separated list of directories in which the shell looks for commands. A null directory name in the path (represented by any of two adjacent colons, an initial colon, or a trailing colon) indicates the current directory.
+Une liste de répertoires séparés par deux-points dans lesquels le shell recherche des commandes. Un nom de répertoire nul dans le chemin (représenté par l'un des deux deux-points adjacents, un deux-points initial ou un deux-points final) indique le répertoire actuel.
 
 ```C
-$ echo "echo $PATH" | ./sodash
-/home/vagrant/.cargo/bin:/home/vagrant/.local/bin:/home/vagrant/.rbenv/plugins/ruby-build/bin:/home/vagrant/.rbenv/shims:/home/vagrant/.rbenv/bin:/home/vagrant/.nvm/versions/node/v10.15.3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/home/vagrant/.cargo/bin:/home/vagrant/workflow:/home/vagrant/.local/bin
+$ echo "echo $CHEMIN" | ./sodas
+/home/vagrant/.cargo/bin:/home/vagrant/.local/bin:/home/vagrant/.rbenv/plugins/ruby-build/bin:/home/vagrant/.rbenv/shims:/home/vagrant /.rbenv/bin:/home/vagrant/.nvm/versions/node/v10.15.3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin :/bin:/usr/games:/usr/local/games:/snap/bin:/home/vagrant/.cargo/bin:/home/vagrant/workflow:/home/vagrant/.local/bin
 ```
 
-### Command Execution
+### Exécution de la commande
 
-After receiving a command, **sodash** tokenizes it into words using `" "` as a delimiter. The first word is considered the command and all remaining words are considered arguments to that command. **sodash** then proceeds with the following actions:
+Après avoir reçu une commande, **sodash** la segmente en mots en utilisant `" "` comme délimiteur. Le premier mot est considéré comme la commande et tous les mots restants sont considérés comme des arguments de cette commande. **sodash** procède ensuite aux actions suivantes :
 
-1. If the first character of the command is neither a slash (`\`) nor dot (`.`), the shell searches for it in the list of shell builtins. If there exists a builtin by that name, the builtin is invoked.
-2. If the first character of the command is none of a slash (`\`), dot (`.`), nor builtin, **sodash** searches each element of the **PATH** environmental variable for a directory containing an executable file by that name.
-3. If the first character of the command is a slash (`\`) or dot (`.`) or either of the above searches was successful, the shell executes the named program with any remaining given arguments in a separate execution environment.
+1. Si le premier caractère de la commande n'est ni une barre oblique (`\`) ni un point (`.`), le shell le recherche dans la liste des commandes intégrées du shell. S'il existe une fonction intégrée de ce nom, la fonction intégrée est invoquée.
+2. Si le premier caractère de la commande n'est ni une barre oblique (`\`), ni un point (`.`), ni un élément intégré, **sodash** recherche chaque élément de la variable d'environnement **PATH** pour un répertoire contenant un fichier exécutable de ce nom.
+3. Si le premier caractère de la commande est une barre oblique (`\`) ou un point (`.`) ou si l'une des recherches ci-dessus a réussi, le shell exécute le programme nommé avec tous les arguments restants dans un environnement d'exécution séparé.
 
-### Exit Status
+### Statut de sortie
 
-**sodash** returns the exit status of the last command executed, with zero indicating success and non-zero indicating failure.
-If a command is not found, the return status is 127; if a command is found but is not executable, the return status is 126.
-All builtins return zero on success and one or two on incorrect usage (indicated by a corresponding error message).
+**sodash** renvoie l'état de sortie de la dernière commande exécutée, zéro indiquant le succès et différent de zéro indiquant l'échec.
+Si une commande n'est pas trouvée, l'état de retour est 127 ; si une commande est trouvée mais n'est pas exécutable, l'état de retour est 126.
+Toutes les commandes intégrées renvoient zéro en cas de succès et un ou deux en cas d'utilisation incorrecte (indiqué par un message d'erreur correspondant).
 
-### Signals
+### Signaux
 
-While running in interactive mode, **sodash** ignores the keyboard input ctrl+c. Alternatively, an input of End-Of-File ctrl+d will exit the program.
+Lors de l'exécution en mode interactif, **sodash** ignore l'entrée clavier ctrl+c. Alternativement, une entrée de End-Of-File ctrl+d quittera le programme.
 
-User hits ctrl+d in the foutrh command.
+L'utilisateur tape ctrl+d dans la commande foutrh.
 
 ```C
-$ ./sodash
+.$/soda
 ^-^ ^C
 ^-^ ^C
 ^-^ ^C
 ^-^
 ```
 
-### Variable Replacement
+### Remplacement des variables
 
-**sodash** interprets the `$` character for variable replacement.
+**sodash** interprète le caractère `$` pour le remplacement de variable.
 
 #### $ENV_VARIABLE
 
-`ENV_VARIABLE` is substituted with its value.
+`ENV_VARIABLE` est remplacé par sa valeur.
 
-Example:
+Exemple:
 
 ```C
-$ echo "echo $PWD" | ./sodash
+$ echo "echo $PWD" | ./sodas
 /home/vagrant/main/simple_shell
 ```
 
-#### $?
+#### $ ?
 
-`?` is substitued with the return value of the last program executed.
+`?` est remplacé par la valeur de retour du dernier programme exécuté.
 
-Example:
+Exemple:
 
 ```C
-$ echo "echo $?" | ./sodash
+$ echo "echo $?" | ./sodas
 0
 ```
 
 #### $$
 
-The second `$` is substitued with the current process ID.
+Le deuxième `$` est remplacé par l'ID de processus actuel.
 
-Example:
+Exemple:
 
 ```C
-$ echo "echo $$" | ./sodash
+$ echo "echo $$" | ./sodas
 3855
 ```
 
-### Comments
+### Commentaires
 
-**sodash** ignores all words and characters preceeded by a `#` character on a line.
+**sodash** ignore tous les mots et caractères précédés d'un caractère `#` sur une ligne.
 
-Example:
-
-```C
-$ echo "echo 'main' #this will be ignored!" | ./sodash
-'main'
-```
-
-### Operators
-
-**sodash** specially interprets the following operator characters:
-
-#### ; - Command separator
-
-Commands separated by a `;` are executed sequentially.
-
-Example:
+Exemple:
 
 ```C
-$ echo "echo 'hello' ; echo 'world'" | ./sodash
-'hello'
-'world'
+$ echo "echo 'main' #ceci sera ignoré !" | ./sodas
+'principal'
 ```
 
-#### && - AND logical operator
+### Les opérateurs
 
-`command1 && command2`: `command2` is executed if, and only if, `command1` returns an exit status of zero.
+**sodash** interprète spécialement les caractères d'opérateur suivants :
 
-Example:
+#### ; - Séparateur de commandes
+
+Les commandes séparées par un `;` sont exécutées séquentiellement.
+
+Exemple:
 
 ```C
-$ echo "error! && echo 'main'" | ./sodash
-./shellby: 1: error!: not found
-$ echo "echo 'my name is' && echo 'main'" | ./sodash
-'my name is'
-'main'
-```
-
-#### || - OR logical operator
-
-`command1 || command2`: `command2` is executed if, and only if, `command1` returns a non-zero exit status.
-
-Example:
-
-```C
-$ echo "error! || echo 'wait for it'" | ./sodash
-./sodash: 1: error!: not found
-'wait for it'
-```
-
-The operators `&&` and `||` have equal precedence, followed by `;`.
-
-### Builtin Commands
-
-#### cd
-
-* Usage: `cd [DIRECTORY]`
-* Changes the current directory of the process to `DIRECTORY`.
-* If no argument is given, the command is interpreted as `cd $HOME`.
-* If the argument `-` is given, the command is interpreted as `cd $OLDPWD` and the pathname of the new working directory is printed to standad output.
-* If the argument, `--` is given, the command is interpreted as `cd $OLDPWD` but the pathname of the new working directory is not printed.
-* The environment variables `PWD` and `OLDPWD` are updated after a change of directory.
-
-Example:
-
-```C
-$ ./sodash
-^-^ pwd
-/home/vagrant/main/simple_shell
-$ cd ../
-^-^ pwd
-/home/vagrant/main
-^-^ cd -
-^-^ pwd
-/home/vagrant/main/simple_shell
-```
+$ echo "echo 'bonjour' ; echo
 
 #### exit
 
